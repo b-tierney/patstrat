@@ -1,0 +1,8 @@
+Package: patstrat
+Title: R Package for Patient Stratification Using Metabolomics and Clinical Data
+Version: 0.1.0
+Authors@R: person("Your Name", email = "your_email@domain.com", role = c("aut", "cre"))
+Description: Provides tools for preprocessing, imputing data, and clustering in metabolomics and clinical datasets.
+License: MIT
+Depends: R (>= 4.0.0)
+Imports: dplyr, mice, torch
