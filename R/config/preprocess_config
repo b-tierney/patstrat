@@ -1,0 +1,3 @@
+output_dir,user_output
+test_mode,TRUE
+continuous_cutoff,10

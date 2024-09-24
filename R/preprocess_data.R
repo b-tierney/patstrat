@@ -1,6 +1,25 @@
 # Load necessary libraries
 suppressPackageStartupMessages({library(dplyr)})
 
+# Function to read the long-form configuration file
+read_config <- function(config_file) {
+  if (file.exists(config_file)) {
+    config <- read.csv(config_file, header = FALSE, stringsAsFactors = FALSE, col.names = c("parameter", "value"))
+    return(config)
+  } else {
+    stop("Config file not found!")
+  }
+}
+
+# Function to extract a value from the config
+get_config_value <- function(config, parameter, default = NULL) {
+  value <- config$value[config$parameter == parameter]
+  if (length(value) == 0) {
+    return(default)
+  }
+  return(value)
+}
+
 # Helper function for setup
 setup <- function(output_dir, test_mode = FALSE) {
   # Create output directory and tmp directory
@@ -104,11 +123,18 @@ preprocess_data_phesant <- function(data, output_dir, continuous_cutoff = 10, mi
   ))
 }
 
-# Example setup for a user-specific output directory and test mode
-output_info <- setup(output_dir = "user_output", test_mode = TRUE)
-dummy_data <- output_info$data  # Retrieve the synthetic data
+# Example usage:
 
-# Preprocess the synthetic data
-preprocess_results <- preprocess_data_phesant(dummy_data, output_dir = output_info$output_dir)
+# Load the configuration file
+config <- read_config("config/preprocess_config")
 
+# Get values from the config file
+output_dir <- get_config_value(config, "output_dir", "default_output")
+test_mode <- as.logical(get_config_value(config, "test_mode", "FALSE"))
+continuous_cutoff <- as.numeric(get_config_value(config, "continuous_cutoff", 10))
 
+# Run setup based on the config
+output_info <- setup(output_dir = output_dir, test_mode = test_mode)
+
+# Preprocess the data using the config values
+preprocess_results <- preprocess_data_phesant(output_info$data, output_dir = output_info$output_dir, continuous_cutoff = continuous_cutoff)
