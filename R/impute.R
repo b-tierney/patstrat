@@ -57,7 +57,7 @@ impute_data <- function(data, methods = c("mean", "median", "knn", "mice"), ks =
     if (method == "knn") {
       for (k in ks) {
         knn_imputed_data <- kNN(data, k = k)
-        imputation_results[[paste0("knn_k", k)]] <- knn_imputed_data  # KNN automatically adds _imp columns
+        imputation_results[[paste0("knn-k", k)]] <- knn_imputed_data  # KNN automatically adds _imp columns
       }
     }
     

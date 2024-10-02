@@ -8,3 +8,6 @@ dbscan_eps,0.5
 dbscan_eps,0.75
 dbscan_minPts,2
 dbscan_minPts,3
+hclust_cutpoint,3
+hclust_cut_quantile,.5
+hclust_kcut,5
