@@ -81,6 +81,15 @@ pcoa_clustering <- function(data) {
   return(pcoa_result)
 }
 
+# DbRDA Clustering
+dbRDA_clustering <- function(data){
+  dist_matrix <- vegdist(data)
+  dbRDA_result <- capscale(dist_matrix ~ ., data = data)
+  dbRDA_scores <- scores(dbRDA_result, display = "sites")
+  return(dbRDA_scores)
+  
+}
+
 # DBSCAN Clustering
 dbscan_clustering <- function(data, eps, minPts) {
   dbscan_result <- dbscan(data, eps = eps, minPts = minPts)
