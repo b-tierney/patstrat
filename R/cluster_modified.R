@@ -96,6 +96,132 @@ dbscan_clustering <- function(data, eps, minPts) {
   return(dbscan_result)
 }
 
+
+
+# VAE Clustering
+vae_clustering <- function(data, latent_dim = 2, hidden_dim = 128, 
+                           epochs = 10, batch_size = 32, n_clusters = 5, seed = 42) {
+  
+  # Check if CUDA is available
+  device <- if (cuda_is_available()) torch_device("cuda") else torch_device("cpu")
+  
+  # Load and preprocess the data
+  data <- read_csv(input_csv)
+  
+  # Select only numeric columns for the VAE model and scale them
+  data_clustering <- data %>%
+    select(where(is.numeric)) %>%
+    scale()  # Normalize the data
+  
+  # Convert data to a torch tensor and move to GPU (or CPU if no GPU available)
+  x_train <- torch_tensor(as.matrix(data_clustering), device = device)
+  
+  # Define the VAE model (on GPU/CPU)
+  vae_model <- nn_module(
+    initialize = function() {
+      self$fc1 <- nn_linear(ncol(x_train), hidden_dim)
+      self$fc2_mean <- nn_linear(hidden_dim, latent_dim)
+      self$fc2_logvar <- nn_linear(hidden_dim, latent_dim)
+      self$fc3 <- nn_linear(latent_dim, hidden_dim)
+      self$fc4 <- nn_linear(hidden_dim, ncol(x_train))
+    },
+    
+    forward = function(x) {
+      h <- torch_relu(self$fc1(x))
+      mean <- self$fc2_mean(h)
+      logvar <- self$fc2_logvar(h)
+      std <- torch_exp(0.5 * logvar)
+      eps <- torch_randn_like(std, device = device)  # Generate random noise for reparameterization on GPU/CPU
+      z <- mean + eps * std  # Latent variable
+      h_decoded <- torch_relu(self$fc3(z))
+      x_recon <- torch_sigmoid(self$fc4(h_decoded))
+      list(x_recon, mean, logvar)  # Return reconstructed output, mean, and logvar
+    }
+  )
+  
+  # Define the VAE loss function
+  vae_loss <- function(x, x_recon, mean, logvar) {
+    recon_loss <- nnf_mse_loss(x_recon, x, reduction = "mean")
+    kl_loss <- -0.5 * torch_sum(1 + logvar - mean^2 - torch_exp(logvar), dim = 1)
+    torch_mean(recon_loss + kl_loss)
+  }
+  
+  # Initialize the VAE model and optimizer (on GPU/CPU)
+  model <- vae_model()
+  optimizer <- optim_adam(model$parameters, lr = 0.001)
+  
+  # Training loop with memory management and explicit GPU usage
+  for (epoch in 1:epochs) {
+    model$train()  # Set model to training mode
+    total_loss <- 0
+    
+    # Iterate over batches manually
+    num_batches <- ceiling(nrow(x_train) / batch_size)
+    for (batch_idx in 1:num_batches) {
+      start_idx <- (batch_idx - 1) * batch_size + 1
+      end_idx <- min(batch_idx * batch_size, nrow(x_train))
+      
+      # Get a mini-batch and ensure GPU placement
+      batch <- x_train[start_idx:end_idx, , drop = FALSE]
+      
+      optimizer$zero_grad()  # Zero out gradients
+      
+      # Forward pass
+      out <- model(batch)
+      
+      # Compute loss
+      loss <- vae_loss(batch, out[[1]], out[[2]], out[[3]])
+      
+      # Backpropagation
+      loss$backward()
+      
+      # Update weights
+      optimizer$step()
+      
+      total_loss <- total_loss + loss$item()
+      
+      # Free up memory by detaching tensors (clear computation history)
+      loss$detach_()
+      out[[1]]$detach_()
+      out[[2]]$detach_()
+      out[[3]]$detach_()
+    }
+    
+    cat("Epoch:", epoch, "Loss:", total_loss / num_batches, "\n")
+    
+    # Force garbage collection after each epoch to free up memory
+    gc()
+  }
+  
+  # Use the encoder part of the model to extract the latent space (on GPU/CPU)
+  model$eval()  # Set model to evaluation mode
+  latent_space <- model$forward(x_train)[[2]]$detach()  # Get the mean (z_mean)
+  
+  # Convert torch tensor to R array for clustering
+  latent_space_array <- as_array(latent_space)
+  
+  # Perform Gaussian Mixture Model (GMM) clustering on the latent space (z_mean)
+  gmm_result <- Mclust(latent_space_array, G = n_clusters, modelNames = "VVV")
+  
+  # Cluster probabilities
+  cluster_probabilities <- gmm_result$z  # Soft clustering probabilities
+  
+  # Add the latent space, cluster assignments, and probabilities to the original data
+  data$latent_x <- latent_space_array[, 1]
+  data$latent_y <- latent_space_array[, 2]
+  data$cluster_vae <- as.factor(gmm_result$classification)
+  
+  # Add cluster probabilities for each cluster
+  for (i in 1:n_clusters) {
+    data[[paste0("cluster_prob_", i)]] <- cluster_probabilities[, i]
+  }
+  
+  cat("VAE Clustering complete with GMM probabilities")
+  # return the dataset with latent space coordinates, cluster assignments, and cluster probabilities
+  return(data)
+}
+
+
 # Drop columns that end with '_imp'
 filter_columns <- function(data) {
   data <- data[, !grepl("_imp$", colnames(data))]
@@ -180,7 +306,11 @@ run_clustering <- function(input_data_list, config_file, output_dir) {
             results_list[[paste0(name, '_dbscan_eps_', eps, '_minPts_', minPts)]] <- list(method = 'dbscan', eps = eps, minPts = minPts, result = dbscan_result)
           }
         }
+      } else if (method == "vae"){
+        vae_result <- vae_clustering(normalized_data)
+        results_list[[paste0(name, '_vae')]] <- list(method = 'vae', result = vae_result)
       }
+      
     }
   }
   
@@ -198,6 +328,8 @@ extract_clusters <- function(result_data, method_name) {
     return(result_data$result$cluster)  # DBSCAN Cluster assignment
   } else if (method_name == 'hclust') {
     return(result_data$result$cluster_hierarchical)  # HClust Cluster assignment
+  } else if (method_name == 'vae') {
+    return(result_data$result$cluster_vae)  # VAE Cluster assignment
   }
   return(NULL)
 }
