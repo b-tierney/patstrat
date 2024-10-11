@@ -5,21 +5,17 @@ suppressPackageStartupMessages({
   library(VIM)
 })
 
-# Function to read the long-form configuration file
-load_imputation_config <- function(config_dir = "config") {
-  config_file <- file.path(config_dir, "imputation_config")
-  
-  # Load the config file as a dataframe without headers
-  if (file.exists(config_file)) {
-    config <- read.csv(config_file, header = FALSE, stringsAsFactors = FALSE, col.names = c("parameter", "value"))
-  } else {
-    stop("Imputation configuration file not found in config directory.")
-  }
-  
-  return(config)
-}
-
-# Function for imputing missing values using various methods and adding an imputation tracking column
+#' Impute Data Function
+#'
+#' Imputes missing values in the data using specified methods and adds tracking columns
+#' to indicate which values were imputed.
+#'
+#' @param data A dataframe with missing values to be imputed.
+#' @param methods A character vector of imputation methods to apply. Options include "mean", "median", "knn", and "mice".
+#' @param ks An integer vector specifying values of k for KNN imputation.
+#' @param categorical_exclude A numeric cutoff for excluding categorical variables from imputation.
+#' @return A list of dataframes, each containing imputed data and corresponding `_imp` columns.
+#' @export
 impute_data <- function(data, methods = c("mean", "median", "knn", "mice"), ks = c(5), categorical_exclude = 1) {
   
   # Helper function to calculate which values were imputed
@@ -76,33 +72,4 @@ impute_data <- function(data, methods = c("mean", "median", "knn", "mice"), ks =
   return(imputation_results)
 }
 
-# Function to load the data, perform imputation, and save results
-impute_and_save <- function(tmp_dir, config_dir = "config") {
-  
-  # Load imputation configuration
-  config <- load_imputation_config(config_dir)
-  
-  # Extract categorical exclusion threshold, methods, and k values from config
-  categorical_exclude <- as.numeric(config$value[config$parameter == "categorical_exclude"])
-  methods <- config$value[config$parameter == "method"]
-  ks <- as.numeric(config$value[config$parameter == "k"])  # Read multiple k values
 
-  # Define paths
-  rds_file <- file.path(tmp_dir, "processed_data.rds")
-  output_rds <- file.path(tmp_dir, "imputed_data.rds")
-  
-  # Load the processed data
-  processed_data <- readRDS(rds_file)
-  
-  # Apply imputation methods
-  imputed_data_list <- impute_data(processed_data, methods = methods, ks = ks, categorical_exclude = categorical_exclude)
-  
-  # Save all imputed datasets into a single RDS file
-  saveRDS(imputed_data_list, output_rds)
-  
-  # Output success message
-  cat("Imputation complete. Results saved in:", output_rds, "\n")
-}
-
-# Example usage
-impute_and_save(tmp_dir = "user_output/tmp", config_dir = "config")

@@ -1,24 +1,6 @@
 # Load necessary libraries
 suppressPackageStartupMessages({library(dplyr)})
 
-# Function to read the long-form configuration file
-read_config <- function(config_file) {
-  if (file.exists(config_file)) {
-    config <- read.csv(config_file, header = FALSE, stringsAsFactors = FALSE, col.names = c("parameter", "value"))
-    return(config)
-  } else {
-    stop("Config file not found!")
-  }
-}
-
-# Function to extract a value from the config
-get_config_value <- function(config, parameter, default = NULL) {
-  value <- config$value[config$parameter == parameter]
-  if (length(value) == 0) {
-    return(default)
-  }
-  return(value)
-}
 
 # Helper function for setup
 setup <- function(output_dir, test_mode = FALSE) {
@@ -49,8 +31,18 @@ setup <- function(output_dir, test_mode = FALSE) {
   return(list(output_dir = output_dir, tmp_dir = tmp_dir))
 }
 
-# PHESANT-style preprocessing function with customizable cutoff for continuous variables
-preprocess_data_phesant <- function(data, output_dir, continuous_cutoff = 10, missing_values = NULL) {
+#' Preprocess Data Function
+#'
+#' Preprocesses the input data by handling missing values, summarizing variable types,
+#' and saving processed data and summary statistics.
+#'
+#' @param data A dataframe to be preprocessed.
+#' @param output_dir A string specifying the output directory for saving results.
+#' @param continuous_cutoff An integer specifying the cutoff for continuous variables.
+#' @param missing_values A vector of values to be treated as missing.
+#' @return A list with processed data and summary statistics.
+#' @export
+preprocess_data <- function(data, output_dir, continuous_cutoff = 10, missing_values = NULL) {
   
   # Define a helper function to determine variable type based on user-defined cutoff for continuous variables
   determine_variable_type <- function(x, cutoff) {
@@ -122,19 +114,3 @@ preprocess_data_phesant <- function(data, output_dir, continuous_cutoff = 10, mi
     summary_statistics = summary_df
   ))
 }
-
-# Example usage:
-
-# Load the configuration file
-config <- read_config("config/preprocess_config")
-
-# Get values from the config file
-output_dir <- get_config_value(config, "output_dir", "default_output")
-test_mode <- as.logical(get_config_value(config, "test_mode", "FALSE"))
-continuous_cutoff <- as.numeric(get_config_value(config, "continuous_cutoff", 10))
-
-# Run setup based on the config
-output_info <- setup(output_dir = output_dir, test_mode = test_mode)
-
-# Preprocess the data using the config values
-preprocess_results <- preprocess_data_phesant(output_info$data, output_dir = output_info$output_dir, continuous_cutoff = continuous_cutoff)
