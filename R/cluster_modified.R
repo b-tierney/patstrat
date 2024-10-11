@@ -328,6 +328,8 @@ extract_clusters <- function(result_data, method_name) {
     return(result_data$result$cluster)  # DBSCAN Cluster assignment
   } else if (method_name == 'hclust') {
     return(result_data$result$cluster_hierarchical)  # HClust Cluster assignment
+  } else if (method_name == 'pcoa') {
+    return(result_data$result$cluster_pcoa)  # PCoA Cluster assignment
   } else if (method_name == 'vae') {
     return(result_data$result$cluster_vae)  # VAE Cluster assignment
   }
