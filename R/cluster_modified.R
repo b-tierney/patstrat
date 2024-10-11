@@ -9,6 +9,7 @@ library(cluster)
 library(dplyr)
 library(vegan)
 library(dbscan)
+library(mclust)
 
 # Load config file and organize it into methods and parameters
 load_config <- function(config_file) {
@@ -74,22 +75,6 @@ hierarchical_clustering <- function(data, cut_quantile = NULL, cutpoint = NULL,k
   }
 }
 
-# PCoA Clustering
-pcoa_clustering <- function(data) {
-  dist_matrix <- vegdist(data)
-  pcoa_result <- cmdscale(dist_matrix)
-  return(pcoa_result)
-}
-
-# DbRDA Clustering
-dbRDA_clustering <- function(data){
-  dist_matrix <- vegdist(data)
-  dbRDA_result <- capscale(dist_matrix ~ ., data = data)
-  dbRDA_scores <- scores(dbRDA_result, display = "sites")
-  return(dbRDA_scores)
-  
-}
-
 # DBSCAN Clustering
 dbscan_clustering <- function(data, eps, minPts) {
   dbscan_result <- dbscan(data, eps = eps, minPts = minPts)
@@ -125,17 +110,9 @@ vae_clustering <- function(data, latent_dim = 2, hidden_dim = 128,
   
   # Check if CUDA is available
   device <- if (cuda_is_available()) torch_device("cuda") else torch_device("cpu")
-  
-  # Load and preprocess the data
-  data <- read_csv(input_csv)
-  
-  # Select only numeric columns for the VAE model and scale them
-  data_clustering <- data %>%
-    select(where(is.numeric)) %>%
-    scale()  # Normalize the data
-  
+
   # Convert data to a torch tensor and move to GPU (or CPU if no GPU available)
-  x_train <- torch_tensor(as.matrix(data_clustering), device = device)
+  x_train <- torch_tensor(as.matrix(data), device = device)
   
   # Define the VAE model (on GPU/CPU)
   vae_model <- nn_module(
@@ -222,7 +199,7 @@ vae_clustering <- function(data, latent_dim = 2, hidden_dim = 128,
   latent_space_array <- as_array(latent_space)
   
   # Perform Gaussian Mixture Model (GMM) clustering on the latent space (z_mean)
-  gmm_result <- Mclust(latent_space_array, G = n_clusters, modelNames = "VVV")
+  gmm_result <- Mclust(latent_space_array, G = n_clusters)
   
   # Cluster probabilities
   cluster_probabilities <- gmm_result$z  # Soft clustering probabilities
@@ -237,7 +214,7 @@ vae_clustering <- function(data, latent_dim = 2, hidden_dim = 128,
     data[[paste0("cluster_prob_", i)]] <- cluster_probabilities[, i]
   }
   
-  cat("VAE Clustering complete with GMM probabilities")
+  cat("VAE Clustering complete with GMM probabilities\n")
   # return the dataset with latent space coordinates, cluster assignments, and cluster probabilities
   return(data)
 }
@@ -332,10 +309,6 @@ run_clustering <- function(input_data_list, config_file, output_dir) {
           
           # Save hclust result
           results_list[[paste0(name, '_hclust', '_',varset)]] <- list(method = 'hierarchical', result = hclust_result,varset = varset)
-        } else if (method == 'pcoa') {
-          pcoa_result <- pcoa_clustering(normalized_data)
-          # Append result to list
-          results_list[[paste0(name, '_pcoa', '_',varset)]] <- list(method = 'pcoa', result = pcoa_result,varset = varset)
         } else if (method == 'dbscan') {
           dbscan_eps <- params$dbscan_eps
           dbscan_minPts <- params$dbscan_minPts
@@ -369,8 +342,6 @@ extract_clusters <- function(result_data, method_name) {
     return(result_data$result$cluster)  # DBSCAN Cluster assignment
   } else if (method_name == 'hclust') {
     return(result_data$result$cluster_hierarchical)  # HClust Cluster assignment
-  } else if (method_name == 'pcoa') {
-    return(result_data$result$cluster_pcoa)  # PCoA Cluster assignment
   } else if (method_name == 'vae') {
     return(result_data$result$cluster_vae)  # VAE Cluster assignment
   }

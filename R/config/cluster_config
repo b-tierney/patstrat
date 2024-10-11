@@ -2,6 +2,7 @@ method,kmeans
 method,hierarchical
 method,pcoa
 method,dbscan
+method,vae
 kmeans_n_clusters,2
 kmeans_n_clusters,3
 dbscan_eps,0.5
