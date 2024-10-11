@@ -96,6 +96,27 @@ dbscan_clustering <- function(data, eps, minPts) {
   return(dbscan_result)
 }
 
+# Function to load and parse varselect configuration file
+varselect <- function(varselect_config_path) {
+  varselect_config <- read.csv(varselect_config_path, stringsAsFactors = FALSE)
+  
+  # Initialize an empty list to store variables for each varset
+  varset_list <- list()
+  
+  # Check if 'all,all' is present
+  if (any(varselect_config$varset == "all" & varselect_config$variable == "all")) {
+    varset_list[["all"]] <- 'all'
+  }
+  
+  # Process each unique varset other than 'all'
+  unique_varsets <- unique(varselect_config$varset[varselect_config$varset != "all"])
+  for (varset in unique_varsets) {
+    variables <- varselect_config$variable[varselect_config$varset == varset]
+    varset_list[[varset]] <- variables
+  }
+  
+  return(varset_list)
+}
 
 
 # VAE Clustering
@@ -236,88 +257,108 @@ run_clustering <- function(input_data_list, config_file, output_dir) {
   methods <- config$methods
   params <- config$params
   input_data_list = readRDS(input_data_list)
-  
-  # Initialize list to store results
+
+  varsets <- tryCatch(
+    {
+      suppressWarnings(varselect('config/varselect_config'))
+    },
+    error = function(e) {
+      varsets = list()
+      varsets['all'] = 'all'
+      return(varsets)
+    }
+  )
+
   results_list <- list()
 
-  # Loop through each dataframe in the list
-  for (name in names(input_data_list)) {
-    data <- input_data_list[[name]]
-    
-    # Filter out columns that end in '_imp' and keep numeric ones
-    filtered_data <- filter_columns(data)
+  for(varset in names(varsets)){
 
-    # Run clustering methods based on config
-    for (method in methods) {
-      normalized_data <- normalize_data(filtered_data)
-      
-      if (method == 'kmeans') {
-        kmeans_n_clusters <- params$kmeans_n_clusters
-        for (n_clusters in kmeans_n_clusters) {
-          kmeans_result <- kmeans_clustering(normalized_data, n_clusters)
-          
-          # Append result to list
-          results_list[[paste0(name, '_kmeans_', n_clusters)]] <- list(method = 'kmeans', n_clusters = n_clusters, result = kmeans_result)
-        }
-      } else if (method == 'hierarchical') {
-        
-        # Loop through cutpoints (if provided) and store output
-        if (!is.null(params$hclust_cutpoint)) {
-          for (cutpoint in params$hclust_cutpoint) {
-            hclust_result <- hierarchical_clustering(filtered_data, cutpoint = as.numeric(cutpoint))
-            # Append result to list
-            results_list[[paste0(name, '_hclust_cutpoint_', cutpoint)]] <- list(method = 'hierarchical', cutpoint = cutpoint, result = hclust_result)
-          }
-        }
+    select_columns <- varsets[[varset]]
 
-        if (!is.null(params$hclust_kcut)) {
-          for (kcut in params$hclust_kcut) {
-            hclust_result <- hierarchical_clustering(filtered_data, kcut = as.numeric(kcut))
-            # Append result to list
-            results_list[[paste0(name, '_hclust_kcut_', cutpoint)]] <- list(method = 'hierarchical', kcut = cutpoint, result = hclust_result)
-          }
-        }
+    # Loop through each dataframe in the list
+    for (name in names(input_data_list)) {
+      data <- input_data_list[[name]]
 
-
-        # Loop through cut_quantiles (if provided) and store output
-        if (!is.null(params$hclust_cut_quantile)) {
-          for (cut_quantile in params$hclust_cut_quantile) {
-            hclust_result <- hierarchical_clustering(filtered_data, cut_quantile = as.numeric(cut_quantile))
-            # Append result to list
-            results_list[[paste0(name, '_hclust_cut_quantile_', cut_quantile)]] <- list(method = 'hierarchical', cut_quantile = cut_quantile, result = hclust_result)
-          }
-        }
-        
-        # Save hclust result
-        results_list[[paste0(name, '_hclust')]] <- list(method = 'hierarchical', result = hclust_result)
-      } else if (method == 'pcoa') {
-        pcoa_result <- pcoa_clustering(normalized_data)
-        # Append result to list
-        results_list[[paste0(name, '_pcoa')]] <- list(method = 'pcoa', result = pcoa_result)
-      } else if (method == 'dbscan') {
-        dbscan_eps <- params$dbscan_eps
-        dbscan_minPts <- params$dbscan_minPts
-        for (eps in dbscan_eps) {
-          for (minPts in dbscan_minPts) {
-            eps = as.numeric(eps)
-            minPts = as.numeric(minPts)
-            dbscan_result <- dbscan_clustering(normalized_data, eps, minPts)
-            # Append result to list
-            results_list[[paste0(name, '_dbscan_eps_', eps, '_minPts_', minPts)]] <- list(method = 'dbscan', eps = eps, minPts = minPts, result = dbscan_result)
-          }
-        }
-      } else if (method == "vae"){
-        vae_result <- vae_clustering(normalized_data)
-        results_list[[paste0(name, '_vae')]] <- list(method = 'vae', result = vae_result)
+      # Subset data based on select_columns, if available, else keep all columns
+      subsetted_data <- if (varset == 'all') {
+        data 
+      } else {
+        data[, select_columns, drop = FALSE]
       }
       
+      # Filter out columns that end in '_imp' and keep numeric ones
+      filtered_data <- filter_columns(subsetted_data)
+
+      # Run clustering methods based on config
+      for (method in methods) {
+        normalized_data <- normalize_data(filtered_data)
+        
+        if (method == 'kmeans') {
+          kmeans_n_clusters <- params$kmeans_n_clusters
+          for (n_clusters in kmeans_n_clusters) {
+            kmeans_result <- kmeans_clustering(normalized_data, n_clusters)
+            
+            # Append result to list
+            results_list[[paste0(name, '_kmeans_', n_clusters, '_',varset)]] <- list(method = 'kmeans', n_clusters = n_clusters, result = kmeans_result,varset = varset)
+          }
+        } else if (method == 'hierarchical') {
+          
+          # Loop through cutpoints (if provided) and store output
+          if (!is.null(params$hclust_cutpoint)) {
+            for (cutpoint in params$hclust_cutpoint) {
+              hclust_result <- hierarchical_clustering(filtered_data, cutpoint = as.numeric(cutpoint))
+              # Append result to list
+              results_list[[paste0(name, '_hclust_cutpoint_', cutpoint, '_',varset)]] <- list(method = 'hierarchical', cutpoint = cutpoint, result = hclust_result,varset = varset)
+            }
+          }
+
+          if (!is.null(params$hclust_kcut)) {
+            for (kcut in params$hclust_kcut) {
+              hclust_result <- hierarchical_clustering(filtered_data, kcut = as.numeric(kcut))
+              # Append result to list
+              results_list[[paste0(name, '_hclust_kcut_', cutpoint, '_',varset)]] <- list(method = 'hierarchical', kcut = cutpoint, result = hclust_result,varset = varset)
+            }
+          }
+
+
+          # Loop through cut_quantiles (if provided) and store output
+          if (!is.null(params$hclust_cut_quantile)) {
+            for (cut_quantile in params$hclust_cut_quantile) {
+              hclust_result <- hierarchical_clustering(filtered_data, cut_quantile = as.numeric(cut_quantile))
+              # Append result to list
+              results_list[[paste0(name, '_hclust_cut_quantile_', cut_quantile, '_',varset)]] <- list(method = 'hierarchical', cut_quantile = cut_quantile, result = hclust_result,varset = varset)
+            }
+          }
+          
+          # Save hclust result
+          results_list[[paste0(name, '_hclust', '_',varset)]] <- list(method = 'hierarchical', result = hclust_result,varset = varset)
+        } else if (method == 'pcoa') {
+          pcoa_result <- pcoa_clustering(normalized_data)
+          # Append result to list
+          results_list[[paste0(name, '_pcoa', '_',varset)]] <- list(method = 'pcoa', result = pcoa_result,varset = varset)
+        } else if (method == 'dbscan') {
+          dbscan_eps <- params$dbscan_eps
+          dbscan_minPts <- params$dbscan_minPts
+          for (eps in dbscan_eps) {
+            for (minPts in dbscan_minPts) {
+              eps = as.numeric(eps)
+              minPts = as.numeric(minPts)
+              dbscan_result <- dbscan_clustering(normalized_data, eps, minPts)
+              # Append result to list
+              results_list[[paste0(name, '_dbscan_eps_', eps, '_minPts_', minPts, '_',varset)]] <- list(method = 'dbscan', eps = eps, minPts = minPts, result = dbscan_result,varset = varset)
+            }
+          }
+        } else if (method == "vae"){
+          vae_result <- vae_clustering(normalized_data)
+          results_list[[paste0(name, '_vae', '_',varset)]] <- list(method = 'vae', result = vae_result,varset = varset)
+        }
+      }
     }
   }
-  
-  # Save all results as RDS
   saveRDS(results_list, file.path(output_dir, 'cluster_results.rds'))
   return(results_list)
 }
+
 
 
 # Function to extract clusters for K-Means, DBSCAN, and HClust methods
@@ -343,16 +384,17 @@ standardize_cluster_output <- function(results_list) {
   param_counter <- 1  # Initialize parameter counter
   
   for (name in names(results_list)) {
-    print(name)
     result_entry <- results_list[[name]]
     parts <- strsplit(name, "_")[[1]]  # Split the name to extract components
     imputation <- parts[1]  # First part is the imputation method
     method <- parts[2]  # Second part is the clustering method
-    
+    varset <- result_entry[['varset']]
+    result_entry[['varset']] <- NULL
+
     # Create unique parameter set name (e.g., parameterset_00000001)
     param_set <- sprintf("parameterset_%08d", param_counter)
     param_counter <- param_counter + 1  # Increment the counter for the next parameter set
-    
+
     # Extract clusters if it's a known method (K-Means, DBSCAN, or HClust)
     clusters <- extract_clusters(result_entry, method)
     
@@ -365,7 +407,8 @@ standardize_cluster_output <- function(results_list) {
         for (param_name in names(result_entry)[-c(1, length(result_entry))]) {  # Skip 'method' and 'result'
           param_value <- result_entry[[param_name]]
           long_format_list <- rbind(long_format_list, data.frame(
-            parameterset = param_set,
+            parameter_set = param_set,
+            variable_set = varset,
             imputation = imputation,
             method = method,
             parameter = param_name,
