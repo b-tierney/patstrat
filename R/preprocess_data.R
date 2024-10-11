@@ -3,14 +3,8 @@ suppressPackageStartupMessages({library(dplyr)})
 
 
 # Helper function for setup
-setup <- function(output_dir, test_mode = FALSE) {
-  # Create output directory and tmp directory
-  dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
-  tmp_dir <- file.path(output_dir, "tmp")
-  dir.create(tmp_dir, showWarnings = FALSE, recursive = TRUE)
-  
+build_test_data <- function() {
   # Use the original six-variable synthetic dataset if in test mode
-  if (test_mode) {
     set.seed(123)
     dummy_data <- data.frame(
       var1 = c(rnorm(15, mean = 5, sd = 1), rnorm(15, mean = 10, sd = 1)),  # Cluster 1 and Cluster 2
@@ -25,10 +19,7 @@ setup <- function(output_dir, test_mode = FALSE) {
     dummy_data$var2[sample(1:30, 15)] <- NA
     dummy_data$var3[sample(1:30, 15)] <- NA
 
-    return(list(output_dir = output_dir, tmp_dir = tmp_dir, data = dummy_data))
-  }
-  
-  return(list(output_dir = output_dir, tmp_dir = tmp_dir))
+    return(dummy_data)
 }
 
 #' Preprocess Data Function
@@ -42,7 +33,7 @@ setup <- function(output_dir, test_mode = FALSE) {
 #' @param missing_values A vector of values to be treated as missing.
 #' @return A list with processed data and summary statistics.
 #' @export
-preprocess_data <- function(data, output_dir, continuous_cutoff = 10, missing_values = NULL) {
+preprocess_data <- function(data, continuous_cutoff = 10, missing_values = NULL) {
   
   # Define a helper function to determine variable type based on user-defined cutoff for continuous variables
   determine_variable_type <- function(x, cutoff) {
@@ -105,10 +96,6 @@ preprocess_data <- function(data, output_dir, continuous_cutoff = 10, missing_va
   )
   
   # Step 6: Save the processed data and summary statistics to the specified directories
-  tmp_dir <- file.path(output_dir, "tmp")
-  saveRDS(data, file.path(tmp_dir, "processed_data.rds"))
-  write.csv(summary_df, file.path(output_dir, "data_summary.csv"), row.names = FALSE)
-  
   return(list(
     processed_data = data,
     summary_statistics = summary_df

@@ -205,14 +205,14 @@ filter_columns <- function(data) {
 #' @param params A list of parameters specific to each clustering method. Includes settings for each method.
 #' @return A list containing clustering results for each method and variable set.
 #' @export
-run_clustering <- function(input_data_list, varselect = list(all = 'all'),methods = c('kmeans','hierarchical','dbscan','vae'),params = list(vae = list(latent_dim = 2, hidden_dim = 128, 
+run_clustering <- function(input_data_list, varselect = list(all = 'all',varset1 = c('var1','var2')),methods = c('kmeans','hierarchical','dbscan','vae'),params = list(vae = list(latent_dim = 2, hidden_dim = 128, 
                            epochs = 10, batch_size = 32, n_clusters = 5, seed = 42),dbscan = list(eps = c("0.5", "0.75"), minPts = c("2", "3")), hierarchical = list(cut_quantile = c(".5"), cutpoint = c("3"), kcut = c("5")), kmeans = list(n_clusters = c("2", "3")))) {
 
   results_list <- list()
 
   for(varset in names(varselect)){
 
-    select_columns <- varsets[[varset]]
+    select_columns <- varselect[[varset]]
 
     # Loop through each dataframe in the list
     for (name in names(input_data_list)) {
@@ -292,8 +292,6 @@ run_clustering <- function(input_data_list, varselect = list(all = 'all'),method
   }
   return(results_list)
 }
-
-
 
 # Function to extract clusters for K-Means, DBSCAN, and HClust methods
 extract_clusters <- function(result_data, method_name) {
