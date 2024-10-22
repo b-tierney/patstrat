@@ -1,0 +1,6 @@
+method,rulefit
+family,gaussian
+dependent_variable,ldl_mg
+max_rules,5
+max_rules,10
+max_rules,15
