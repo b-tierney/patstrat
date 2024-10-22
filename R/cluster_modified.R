@@ -1,4 +1,4 @@
-# cluster.R
+# cluster_modified.R
 
 # Load libraries
 library(torch)
@@ -10,16 +10,6 @@ library(dplyr)
 library(vegan)
 library(dbscan)
 library(mclust)
-
-# Load config file and organize it into methods and parameters
-load_config <- function(config_file) {
-  config <- read.delim(config_file, header=F, sep=',')
-  methods <- config %>% filter(V1 == 'method') %>% pull(V2)
-  # Create a named list of parameters using base R functions
-  params <- split(config$V2, config$V1)
-  params <- params[names(params) != 'method']  # Remove 'method' from params
-  return(list(methods = methods, params = params))
-}
 
 # Drop non-numeric columns for methods that can't handle them (all except hclust)
 filter_numeric_columns <- function(data) {
@@ -79,28 +69,6 @@ hierarchical_clustering <- function(data, cut_quantile = NULL, cutpoint = NULL,k
 dbscan_clustering <- function(data, eps, minPts) {
   dbscan_result <- dbscan(data, eps = eps, minPts = minPts)
   return(dbscan_result)
-}
-
-# Function to load and parse varselect configuration file
-varselect <- function(varselect_config_path) {
-  varselect_config <- read.csv(varselect_config_path, stringsAsFactors = FALSE)
-  
-  # Initialize an empty list to store variables for each varset
-  varset_list <- list()
-  
-  # Check if 'all,all' is present
-  if (any(varselect_config$varset == "all" & varselect_config$variable == "all")) {
-    varset_list[["all"]] <- 'all'
-  }
-  
-  # Process each unique varset other than 'all'
-  unique_varsets <- unique(varselect_config$varset[varselect_config$varset != "all"])
-  for (varset in unique_varsets) {
-    variables <- varselect_config$variable[varselect_config$varset == varset]
-    varset_list[[varset]] <- variables
-  }
-  
-  return(varset_list)
 }
 
 
@@ -227,30 +195,24 @@ filter_columns <- function(data) {
   return(numeric_data)
 }
 
-# Main function to run clustering based on config and return the results
-run_clustering <- function(input_data_list, config_file, output_dir) {
-  # Load the clustering config
-  config <- load_config(config_file)
-  methods <- config$methods
-  params <- config$params
-  input_data_list = readRDS(input_data_list)
-
-  varsets <- tryCatch(
-    {
-      suppressWarnings(varselect('config/varselect_config'))
-    },
-    error = function(e) {
-      varsets = list()
-      varsets['all'] = 'all'
-      return(varsets)
-    }
-  )
+#' Run Clustering
+#'
+#' Applies clustering methods to a list of dataframes using specified variable sets and parameters.
+#'
+#' @param input_data_list A list of dataframes to apply clustering to.
+#' @param varselect A named list of variable sets to subset data by before clustering. Default is 'all' variables.
+#' @param methods A character vector of clustering methods to apply. Options are "kmeans", "hierarchical", "dbscan", and "vae".
+#' @param params A list of parameters specific to each clustering method. Includes settings for each method.
+#' @return A list containing clustering results for each method and variable set.
+#' @export
+run_clustering <- function(input_data_list, varselect = list(all = 'all'),methods = c('kmeans','hierarchical','dbscan','vae'),params = list(vae = list(latent_dim = 2, hidden_dim = 128, 
+                           epochs = 10, batch_size = 32, n_clusters = 5, seed = 42),dbscan = list(eps = c("0.5", "0.75"), minPts = c("2", "3")), hierarchical = list(cut_quantile = c(".5"), cutpoint = c("3"), kcut = c("5")), kmeans = list(n_clusters = c("2", "3")))) {
 
   results_list <- list()
 
-  for(varset in names(varsets)){
+  for(varset in names(varselect)){
 
-    select_columns <- varsets[[varset]]
+    select_columns <- varselect[[varset]]
 
     # Loop through each dataframe in the list
     for (name in names(input_data_list)) {
@@ -271,7 +233,7 @@ run_clustering <- function(input_data_list, config_file, output_dir) {
         normalized_data <- normalize_data(filtered_data)
         
         if (method == 'kmeans') {
-          kmeans_n_clusters <- params$kmeans_n_clusters
+          kmeans_n_clusters <- params[[method]][['n_clusters']]
           for (n_clusters in kmeans_n_clusters) {
             kmeans_result <- kmeans_clustering(normalized_data, n_clusters)
             
@@ -281,16 +243,16 @@ run_clustering <- function(input_data_list, config_file, output_dir) {
         } else if (method == 'hierarchical') {
           
           # Loop through cutpoints (if provided) and store output
-          if (!is.null(params$hclust_cutpoint)) {
-            for (cutpoint in params$hclust_cutpoint) {
+          if (!is.null(params[[method]][['cutpoint']])) {
+            for (cutpoint in params[[method]][['cutpoint']]) {
               hclust_result <- hierarchical_clustering(filtered_data, cutpoint = as.numeric(cutpoint))
               # Append result to list
               results_list[[paste0(name, '_hclust_cutpoint_', cutpoint, '_',varset)]] <- list(method = 'hierarchical', cutpoint = cutpoint, result = hclust_result,varset = varset)
             }
           }
 
-          if (!is.null(params$hclust_kcut)) {
-            for (kcut in params$hclust_kcut) {
+          if (!is.null(params[[method]][['kcut']])) {
+            for (kcut in params[[method]][['kcut']]) {
               hclust_result <- hierarchical_clustering(filtered_data, kcut = as.numeric(kcut))
               # Append result to list
               results_list[[paste0(name, '_hclust_kcut_', cutpoint, '_',varset)]] <- list(method = 'hierarchical', kcut = cutpoint, result = hclust_result,varset = varset)
@@ -299,8 +261,8 @@ run_clustering <- function(input_data_list, config_file, output_dir) {
 
 
           # Loop through cut_quantiles (if provided) and store output
-          if (!is.null(params$hclust_cut_quantile)) {
-            for (cut_quantile in params$hclust_cut_quantile) {
+          if (!is.null(params[[method]][['cut_quantile']])) {
+            for (cut_quantile in params[[method]][['cut_quantile']]) {
               hclust_result <- hierarchical_clustering(filtered_data, cut_quantile = as.numeric(cut_quantile))
               # Append result to list
               results_list[[paste0(name, '_hclust_cut_quantile_', cut_quantile, '_',varset)]] <- list(method = 'hierarchical', cut_quantile = cut_quantile, result = hclust_result,varset = varset)
@@ -310,8 +272,8 @@ run_clustering <- function(input_data_list, config_file, output_dir) {
           # Save hclust result
           results_list[[paste0(name, '_hclust', '_',varset)]] <- list(method = 'hierarchical', result = hclust_result,varset = varset)
         } else if (method == 'dbscan') {
-          dbscan_eps <- params$dbscan_eps
-          dbscan_minPts <- params$dbscan_minPts
+          dbscan_eps <- params[[method]][['eps']]
+          dbscan_minPts <- params[[method]][['minPts']]
           for (eps in dbscan_eps) {
             for (minPts in dbscan_minPts) {
               eps = as.numeric(eps)
@@ -328,11 +290,8 @@ run_clustering <- function(input_data_list, config_file, output_dir) {
       }
     }
   }
-  saveRDS(results_list, file.path(output_dir, 'cluster_results.rds'))
   return(results_list)
 }
-
-
 
 # Function to extract clusters for K-Means, DBSCAN, and HClust methods
 extract_clusters <- function(result_data, method_name) {
@@ -348,6 +307,13 @@ extract_clusters <- function(result_data, method_name) {
   return(NULL)
 }
 
+#' Standardize Cluster Output
+#'
+#' Standardizes and integrates clustering results for easier analysis.
+#'
+#' @param results_list A list containing clustering results.
+#' @return A list with two dataframes: `wide_format_df` and `long_format_df`.
+#' @export
 # Function to standardize the output into wide and long format
 standardize_cluster_output <- function(results_list) {
   wide_format_list <- list()
@@ -397,13 +363,4 @@ standardize_cluster_output <- function(results_list) {
   return(list(wide_format_df = wide_format_df, long_format_df = long_format_list))
 }
 
-# Example usage of the standardized function after running clustering
-output = run_clustering('user_output/tmp/imputed_data.rds', 'config/cluster_config', 'user_output/')
-
-# Standardize the cluster output
-standardized_output <- standardize_cluster_output(output)
-
-# Save the output
-write.csv(standardized_output$wide_format_df, file = 'user_output/wide_format_clusters.csv')
-write.csv(standardized_output$long_format_df, file = 'user_output/long_format_parameters.csv')
 
