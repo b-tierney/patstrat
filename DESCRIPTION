@@ -1,8 +1,9 @@
-Package: patstrat
-Title: R Package for Patient Stratification Using Metabolomics and Clinical Data
+Package: clinclust
+Title: R Package for identifying subpopulations of individuals in omic and clinical data
 Version: 0.1.0
-Authors@R: person("Your Name", email = "your_email@domain.com", role = c("aut", "cre"))
-Description: Provides tools for preprocessing, imputing data, and clustering in metabolomics and clinical datasets.
+Authors@R: c(person("Braden", "Tierney", email = "braden_tierney@hms.harvard.edu", role = c("aut", "cre")), person("Sivateja", "Tangirala", email = "sivateja_tangirala@hms.harvard.edu", role = "aut"))
+Description: A toolkit for supervised and unsupervised subpopulation identification in patient data.
 License: MIT
 Depends: R (>= 4.0.0)
-Imports: dplyr, mice, torch
+Imports: dplyr, mice, torch, pre, readr, stats, cluster, vegan, dbscan, mclust
+RoxygenNote: 7.3.2

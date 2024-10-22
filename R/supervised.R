@@ -39,64 +39,63 @@ filter_columns <- function(data) {
 #  numeric_data <- data[, sapply(data, is.numeric), drop = FALSE]
   return(data)
 }
-
-# Function to fit RuleFit model and generate output table
-fit_rule_model <- function(config_file = 'config/supervised_config',input_data_list = 'user_output/tmp/imputed_data.rds') {
+#' Fit RuleFit Model and Generate Output Table
+#'
+#' This function fits a RuleFit model to an input dataset and generates a table of model coefficients.
+#'
+#' @param input_data_list A list of data frames to apply the RuleFit model to.
+#' @param varselect A named list of variable sets to subset data by before modeling. Default is 'all' variables.
+#' @param family The family of the model. Default is "gaussian".
+#' @param dependent_variable The dependent variable for the RuleFit model (required).
+#' @param max_depth The maximum depth of the tree used to generate in the RuleFit model. Default is 10.
+#' @return A list of data frames containing RuleFit model coefficients for each dataset and variable set.
+#' @export
+supervised_rulefit <- function(input_data_list, varselect = list(all = 'all'), dependent_variable, 
+                           family = "gaussian", max_depth = 3) {
   
-  config <- load_config(config_file)
-  methods <- config$methods
-  params <- config$params
-  input_data_list = readRDS(input_data_list)
+  # Initialize an empty list to store results
+  results_list <- list()
 
-  varsets <- tryCatch(
-  {
-    suppressWarnings(varselect('config/varselect_config'))
-  },
-  error = function(e) {
-    varsets = list()
-    varsets['all'] = 'all'
-    return(varsets)
-  }
-  )
+  # Loop through each variable set in the varselect
+  for (varset in names(varselect)) {
 
-  results_list = list()
+    print(varset)
+    
+    select_columns <- varselect[[varset]]
 
-  for(varset in names(varsets)){
+    # Loop through each dataset in the input data list
+    for (dat in names(input_data_list)) {
 
-    select_columns <- varsets[[varset]]
+      data <- input_data_list[[dat]]
 
-    for(dat in names(input_data_list)){
-
-      data = input_data_list[[dat]]
-
+      # Subset data based on variable set, or use all columns if varset is 'all'
       subsetted_data <- if (varset == 'all') {
-        data 
+        data
       } else {
-        data[, select_columns, drop = FALSE]
+        # Ensure the dependent variable is included in the subsetted data
+        required_columns <- unique(c(select_columns, dependent_variable))
+        subsetted_data <- data[, required_columns, drop = FALSE]
       }
 
-      dat_filt <- filter_columns(data)
-      dat_filt <- dat_filt %>% mutate_if(is.character, as.factor)
+      # Drop all columns ending in '_imp'
+      subsetted_data <- subsetted_data[, !grepl("_imp$", colnames(subsetted_data))]
 
-      # Fit the RuleFit model
-      formula <- as.formula(paste(params[['dependent_variable']], "~ ."))
+      # Convert character columns to factors
+      dat_filt <- subsetted_data %>% mutate_if(is.character, as.factor)
 
-      rule_model <- pre(formula, data = dat_filt, family = params[['family']], max.rules = params[['max_rules']])
+      # Fit the RuleFit model using the provided parameters
+      formula <- as.formula(paste(dependent_variable, "~ ."))
+      rule_model <- pre(formula, data = dat_filt, family = family, maxdepth = max_depth)
       
-      # Extract the coefficients
-      rule_coefficients <- coef(rule_model) %>% mutate(imputation_method = dat,variable_set = varset)
+      # Extract the coefficients and add metadata
+      rule_coefficients <- coef(rule_model) %>%
+        mutate(imputation_method = dat, variable_set = varset)
       
-      # Combine the coefficients and descriptions into a data frame
-
-      results_list[[paste(dat,varset,sep='__')]] <- rule_coefficients
-
-      }
+      # Store results in a list
+      results_list[[paste(dat, varset, sep = '__')]] <- rule_model
+    }
   }
 
   return(results_list)
 }
-
-results_out = bind_rows(fit_rule_model(config_file = 'config/supervised_config',input_data_list = 'user_output/tmp/imputed_data.rds'))
-write.csv(results_out,file = 'user_output/supervised_results.csv')
-
 
