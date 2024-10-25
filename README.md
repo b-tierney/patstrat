@@ -110,7 +110,7 @@ results_supervised <- supervised_rulefit(dependent_variable = 'Sepal.Length',inp
 Returns a named list of rulefit regression outputs for every set of variables and for every imputation method employed.
 
 ### Unsupervised Clustering
-Use the `cluster_modified` function for unsupervised clustering to identify natural groupings in the data without predefined labels.
+Use the `unsupervised_clustering` function for unsupervised clustering to identify natural groupings in the data without predefined labels.
 
 #### Arguments
 
