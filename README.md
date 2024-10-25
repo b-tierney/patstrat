@@ -138,11 +138,19 @@ Clustering parameters for each method:
 | Hierarchical | kcut         | Number of clusters to use for k-means initialization in hierarchical clustering (one of three methods of building hierarchical clusters). |
 | K-Means      | n_clusters   | Number of clusters to form in k-means clustering.                                               |
 
+After the clustering step, you can coerce the output into standardized dataframes that could be compared (e.g., shown on a series of PCA plots or something similar) in order to identify co-occurence between individuals and/or stability of cluster. The function for doing so is `standardize_cluster_output`, and it take the output of the unsupervised clustering directly, returning a cleaned named list.
 
 ```r
-# Perform unsupervised clustering
-results_unsupervised <- cluster_modified(imputed_data)
+# Perform unsupervised clustering and then cleans the output 
+results_unsupervised <- unsupervised_clustering(imputed_data)
+results_unsupervised_clean <- standardize_cluster_output(results_unsupervised)
 ```
+#### Output
+
+Returns the raw clustering (unsupervised_clustering) processed (standardize_cluster_output) output for every method in a named list.
+
+###
+
 
 ## Dependencies
 This package requires the following R packages to function properly:

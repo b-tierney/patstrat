@@ -322,7 +322,7 @@ extract_clusters <- function(result_data, method_name) {
 #' Standardizes and integrates clustering results for easier analysis.
 #'
 #' @param results_list A list containing clustering results.
-#' @return A list with two dataframes: `wide_format_df` and `long_format_df`.
+#' @return A list with two dataframes: `cluster_membership` and `cluster_parameters`.
 #' @export
 # Function to standardize the output into wide and long format
 standardize_cluster_output <- function(results_list) {
@@ -370,7 +370,7 @@ standardize_cluster_output <- function(results_list) {
   
   # Convert the wide format list to a DataFrame
   wide_format_df <- as.data.frame(wide_format_list)
-  return(list(wide_format_df = wide_format_df, long_format_df = long_format_list))
+  return(list(cluster_membership = wide_format_df, cluster_parameters = long_format_list))
 }
 
 
