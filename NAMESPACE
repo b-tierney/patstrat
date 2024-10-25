@@ -2,6 +2,6 @@
 
 export(impute_data)
 export(preprocess_data)
-export(run_clustering)
+export(unsupervised_clustering)
 export(standardize_cluster_output)
 export(supervised_rulefit)

@@ -205,7 +205,7 @@ filter_columns <- function(data) {
 #' @param params A list of parameters specific to each clustering method. Includes settings for each method.
 #' @return A list containing clustering results for each method and variable set.
 #' @export
-run_clustering <- function(input_data_list, varselect = list(all = 'all'),methods = c('kmeans','hierarchical','dbscan','vae'),params = list(vae = list(latent_dim = 2, hidden_dim = 128, 
+unsupervised_clustering <- function(input_data_list, varselect = list(all = 'all'),methods = c('kmeans','hierarchical','dbscan','vae'),params = list(vae = list(latent_dim = 2, hidden_dim = 128, 
                            epochs = 10, batch_size = 32, n_clusters = 5, seed = 42),dbscan = list(eps = c("0.5", "0.75"), minPts = c("2", "3")), hierarchical = list(cut_quantile = c(".5"), cutpoint = c("3"), kcut = c("5")), kmeans = list(n_clusters = c("2", "3")))) {
 
   results_list <- list()
@@ -227,12 +227,14 @@ run_clustering <- function(input_data_list, varselect = list(all = 'all'),method
       
       # Filter out columns that end in '_imp' and keep numeric ones
       filtered_data <- filter_columns(subsetted_data)
+      print(filtered_data)
 
       # Run clustering methods based on config
       for (method in methods) {
         normalized_data <- normalize_data(filtered_data)
         
         if (method == 'kmeans') {
+          
           kmeans_n_clusters <- params[[method]][['n_clusters']]
           for (n_clusters in kmeans_n_clusters) {
             kmeans_result <- kmeans_clustering(normalized_data, n_clusters)
@@ -272,6 +274,7 @@ run_clustering <- function(input_data_list, varselect = list(all = 'all'),method
           # Save hclust result
           results_list[[paste0(name, '_hclust', '_',varset)]] <- list(method = 'hierarchical', result = hclust_result,varset = varset)
         } else if (method == 'dbscan') {
+          
           dbscan_eps <- params[[method]][['eps']]
           dbscan_minPts <- params[[method]][['minPts']]
           for (eps in dbscan_eps) {
@@ -284,6 +287,7 @@ run_clustering <- function(input_data_list, varselect = list(all = 'all'),method
             }
           }
         } else if (method == "vae"){
+          
           vae_result <- vae_clustering(normalized_data)
           results_list[[paste0(name, '_vae', '_',varset)]] <- list(method = 'vae', result = vae_result,varset = varset)
         }

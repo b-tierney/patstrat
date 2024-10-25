@@ -45,7 +45,7 @@ The workflow involves three main steps: preprocessing, imputation, and either su
 ### Step 1: Preprocess the Data
 Use the `preprocess_data` function to normalize and prepare the dataset for analysis.
 
-#### Parameters
+#### Arguments
 
 | Parameter         | Description                                               | Default |
 |-------------------|-----------------------------------------------------------|---------|
@@ -78,57 +78,69 @@ After preprocessing, handle missing values using the `impute` function. Multiple
 
 #### Output
 
-Returns a list of imputed dataframes where the names correspond to the methods and the parameters used.
+Returns a list of imputed dataframes where the names correspond to the methods and the parameters used. Additionally, columns with the original labels ending in \_imp are appended to the initial dataframe indicating if a given cell in the original column was or wasn't imputed. These are not analyzed in the clustering functions downstream and are there for the users benefit.
 
 ```r
 # Impute missing values
-imputed_data <- impute(iris_preprocessed$processed_data,methods = c('mice','knn'),ks = c(6,7,8,9,10))
+imputed_data <- impute_data(iris_preprocessed$processed_data,methods = c('mice','knn'),ks = c(6,7,8,9,10))
 ```
 
 ### Step 3: Clustering
 Once the data has been imputed, you can proceed with either supervised or unsupervised clustering.
 
 
-#### Supervised Clustering
+### Supervised Clustering
 Use the `supervised` function to perform supervised clustering based on predefined labels.
 
+#### Arguments
+
+| Parameter         | Description                                               | Default |
+|-------------------|-----------------------------------------------------------|---------|
+| dependent_variable              | The dependent, or "Y" variable that you want to regress on.  | None    |
+| input_data_list    |  A named list of dataframes that will be used for the regression. | None | 
+| varselect | A named list of vectors of variables that you want to iterate over for clustering. Uses all variables by default (specific by a named "all" string). For example, to use age, sex, and bmi in one round and just age and bmi in another, you should specify a list as follows: list(group1 = c('age','sex','bmi'),group2 = c('age','bmi')) | list(all = 'all') |
+
 ```r
-# Perform supervised clustering
-results_supervised <- supervised(imputed_data, labels = "path/to/labels.csv")
+# Perform supervised clustering for ALL imputed datasets for two subsets of variables
+results_supervised <- supervised_rulefit(dependent_variable = 'Sepal.Length',input_data_list = imputed_data,varselect = list(group1 = ('Petal.Length'),group2 = c('Petal.Width','Sepal.Width')))
 ```
 
-#### Unsupervised Clustering
+#### Output
+
+Returns a named list of rulefit regression outputs for every set of variables and for every imputation method employed.
+
+### Unsupervised Clustering
 Use the `cluster_modified` function for unsupervised clustering to identify natural groupings in the data without predefined labels.
+
+#### Arguments
+
+| Parameter         | Description                                               | Default |
+|-------------------|-----------------------------------------------------------|---------|
+| input_data_list    |  A named list of dataframes that will be used for the clustering. | None |  
+| varselect | A named list of vectors of variables that you want to iterate over for clustering. Uses all variables by default (specific by a named "all" string). For example, to use age, sex, and bmi in one round and just age and bmi in another, you should specify a list as follows: list(group1 = c('age','sex','bmi'),group2 = c('age','bmi')) | list(all = 'all') |
+| methods | A vector of all the clustering methods you want to employ.|  c('kmeans','hierarchical','dbscan','vae') |
+| params| A large named list, where each name is a different clustering method, of all the parameters you want used | list(vae = list(latent_dim = 2, hidden_dim = 128, epochs = 10, batch_size = 32, n_clusters = 5, seed = 42),dbscan = list(eps = c("0.5", "0.75"), minPts = c("2", "3")), hierarchical = list(cut_quantile = c(".5"), cutpoint = c("3"), kcut = c("5")), kmeans = list(n_clusters = c("2", "3"))).|
+
+Clustering parameters for each method:
+
+| Method       | Parameter    | Description                                                              |
+|--------------|--------------|--------------------------------------------------------------------------|
+| VAE          | latent_dim   | Dimensionality of the latent space.                                       |
+| VAE          | hidden_dim   | Number of hidden units in the encoder and decoder.                        |
+| VAE          | epochs       | Number of epochs to train the VAE model.                                  |
+| VAE          | batch_size   | Number of samples per gradient update.                                    |
+| VAE          | n_clusters   | Number of clusters to form in the latent space.                           |
+| VAE          | seed         | Random seed for reproducibility.                                          |
+| DBSCAN       | eps          | The maximum distance between two samples for them to be considered as in the same neighborhood. |
+| DBSCAN       | minPts       | The minimum number of samples in a neighborhood for a point to be considered a core point. |
+| Hierarchical | cut_quantile | The quantile used to cut the dendrogram (one of three methods of building hierarchical clusters).  |
+| Hierarchical | cutpoint     | The number of clusters or groups to cut the dendrogram into (one of three methods of building hierarchical clusters).              |
+| Hierarchical | kcut         | Number of clusters to use for k-means initialization in hierarchical clustering (one of three methods of building hierarchical clusters). |
+| K-Means      | n_clusters   | Number of clusters to form in k-means clustering.                                               |
+
 
 ```r
 # Perform unsupervised clustering
-results_unsupervised <- cluster_modified(imputed_data)
-```
-
-
-
-
-
-
-
-
-## Example Workflow
-Below is a complete example from preprocessing the data to clustering:
-
-```r
-# Load the package
-library(clinclust)
-
-# Step 1: Preprocess the data
-preprocessed_data <- preprocess_data(input_file = "path/to/data.csv")
-
-# Step 2: Impute missing values
-imputed_data <- impute(preprocessed_data)
-
-# Step 3a: Supervised clustering
-results_supervised <- supervised(imputed_data, labels = "path/to/labels.csv")
-
-# Step 3b: Unsupervised clustering (optional, choose either supervised or unsupervised)
 results_unsupervised <- cluster_modified(imputed_data)
 ```
 
