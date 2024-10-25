@@ -1,9 +1,0 @@
-categorical_exclude,.2 
-method,mean
-method,median
-method,mode
-method,knn
-method,mice
-k,5
-k,10
-k,20

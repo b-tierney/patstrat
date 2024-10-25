@@ -5,5 +5,7 @@ Authors@R: c(person("Braden", "Tierney", email = "braden_tierney@hms.harvard.edu
 Description: A toolkit for supervised and unsupervised subpopulation identification in patient data.
 License: MIT
 Depends: R (>= 4.0.0)
-Imports: dplyr, mice, torch, pre, readr, stats, cluster, vegan, dbscan, mclust
+Imports: VIM,cluster,dbscan,dplyr,ggplot2,mclust,mice,pre,readr,stats,torch,vegan
 RoxygenNote: 7.3.2
+
+

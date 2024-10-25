@@ -4,12 +4,7 @@
 \alias{impute_data}
 \title{Impute Data Function}
 \usage{
-impute_data(
-  data,
-  methods = c("mean", "median", "knn", "mice"),
-  ks = c(5),
-  categorical_exclude = 1
-)
+impute_data(data, methods = c("mean", "median", "knn", "mice"), ks = c(5))
 }
 \arguments{
 \item{data}{A dataframe with missing values to be imputed.}
@@ -17,8 +12,6 @@ impute_data(
 \item{methods}{A character vector of imputation methods to apply. Options include "mean", "median", "knn", and "mice".}
 
 \item{ks}{An integer vector specifying values of k for KNN imputation.}
-
-\item{categorical_exclude}{A numeric cutoff for excluding categorical variables from imputation.}
 }
 \value{
 A list of dataframes, each containing imputed data and corresponding `_imp` columns.

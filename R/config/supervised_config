@@ -1,6 +1,0 @@
-method,rulefit
-family,gaussian
-dependent_variable,ldl_mg
-max_depth,5
-max_depth,10
-max_depth,15

@@ -10,7 +10,7 @@ standardize_cluster_output(results_list)
 \item{results_list}{A list containing clustering results.}
 }
 \value{
-A list with two dataframes: `wide_format_df` and `long_format_df`.
+A list with two dataframes: `cluster_membership` and `cluster_parameters`.
 }
 \description{
 Standardizes and integrates clustering results for easier analysis.

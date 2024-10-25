@@ -1,5 +1,19 @@
 # cluster_modified.R
 
+#' @import VIM
+#' @import cluster
+#' @import dbscan
+#' @import dplyr
+#' @import ggplot2
+#' @import mclust
+#' @import mice
+#' @import pre
+#' @import readr
+#' @import stats
+#' @import torch
+#' @import vegan
+
+
 # Load libraries
 library(torch)
 library(readr)
