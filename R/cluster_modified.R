@@ -189,9 +189,13 @@ vae_clustering <- function(data, latent_dim = 2, hidden_dim = 128,
 
 
 # Drop columns that end with '_imp'
-filter_columns <- function(data) {
-  data <- data[, !grepl("_imp$", colnames(data))]
-  numeric_data <- data[, sapply(data, is.numeric), drop = FALSE]
+filter_the_columns <- function(data) {
+  # Drop columns that end with '_imp'
+  data <- data[, !base::grepl("_imp$", base::colnames(data))]
+  
+  # Keep only truly numeric columns (exclude factors and characters)
+  numeric_data <- data[, base::sapply(data, function(col) base::is.numeric(col) && !base::is.factor(col) && !base::is.character(col)), drop = FALSE]
+  
   return(numeric_data)
 }
 
@@ -210,6 +214,7 @@ unsupervised_clustering <- function(input_data_list, varselect = list(all = 'all
 
   results_list <- list()
 
+
   for(varset in names(varselect)){
 
     select_columns <- varselect[[varset]]
@@ -224,9 +229,10 @@ unsupervised_clustering <- function(input_data_list, varselect = list(all = 'all
       } else {
         data[, select_columns, drop = FALSE]
       }
-      
+
       # Filter out columns that end in '_imp' and keep numeric ones
-      filtered_data <- filter_columns(subsetted_data)
+      filtered_data <- filter_the_columns(subsetted_data)
+
       print(filtered_data)
 
       # Run clustering methods based on config
