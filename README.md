@@ -51,7 +51,7 @@ Use the `preprocess_data` function to normalize and prepare the dataset for anal
 |-------------------|-----------------------------------------------------------|---------|
 | data              | The input dataset to preprocess.                          | None    |
 | missing_values    | Strings that indicate missing values (eg NA, none, Null)     | None    |
-| continuous_cutoff | The max number of levels in a factor before a column is converted to a continuous variable | 10  |
+| continuous_cutoff | The max number of levels in a column before it is converted to a continuous variable | 10  |
 
 #### Output
 
