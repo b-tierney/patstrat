@@ -13,10 +13,9 @@ suppressPackageStartupMessages({
 #' @param data A dataframe with missing values to be imputed.
 #' @param methods A character vector of imputation methods to apply. Options include "mean", "median", "knn", and "mice".
 #' @param ks An integer vector specifying values of k for KNN imputation.
-#' @param categorical_exclude A numeric cutoff for excluding categorical variables from imputation.
 #' @return A list of dataframes, each containing imputed data and corresponding `_imp` columns.
 #' @export
-impute_data <- function(data, methods = c("mean", "median", "knn", "mice"), ks = c(5), categorical_exclude = 1) {
+impute_data <- function(data, methods = c("mean", "median", "knn", "mice"), ks = c(5)) {
   
   # Helper function to calculate which values were imputed
   track_imputation <- function(original, imputed) {

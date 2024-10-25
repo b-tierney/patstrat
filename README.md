@@ -8,11 +8,17 @@
 
 The purpose is to compare numerous imputation and clustering methods simlultaneously so you can evalution the robustness of clusters to analytic choice. This is akin to our prior work with Vibration of Effects, where we compared how model specification changes observed association outcomes.
 
-Clinclust has two modes: supervised and unsupervised. 
+Clinclust has two modes: supervised and unsupervised. Both can be run on either all variables in a dataset or specific subsets (e.g., just age, sex, bmi in one group, then just age and sex in another) so the impact of including different variables on patient stratification can be observed. 
 
 ### Supervised mode
 
-In supervised mode, the goal is to identify subpopulations directly as a function of given depedent variable. Clinclust uses 
+In supervised mode, the goal is to identify subpopulations directly as a function of given depedent variable (e.g., response to treatment). Clinclust uses RuleFit regression (wrapping the Pre package) to build regression-based decision trees for separating patients into groups based on their characteristics. The goal in running Clinclust in supervised mode is to define patient groups that are meaningful in the context of treatment or disease (e.g., with BMI > X and the abundance of metabolite Y > X, patients are likely to respond to a given drug).
+
+### Unsupervised mode
+
+In unsupervised mode, Clinclust can use multiple imputation (mean, median, MICE, a variational autoencoder) and clustering (kmeans, DBSCAN, hierarchical, variational autoencoder coupled with a gaussian mixture model) methods to sort patients into groups, without being guided by a potential response variable. The total set of imputation methods and clustering approaches are then returned and can be compared on, say, a PCA plot or other visualization.
+
+In future versions of Clinclust, we will implement a shinify function that generates a shiny app for a given output data structure. 
 
 
 ## Installation
@@ -39,24 +45,54 @@ The workflow involves three main steps: preprocessing, imputation, and either su
 ### Step 1: Preprocess the Data
 Use the `preprocess_data` function to normalize and prepare the dataset for analysis.
 
+#### Parameters
+
+
+# `preprocess_data` Function Parameters
+
+| Parameter         | Description                                               | Default |
+|-------------------|-----------------------------------------------------------|---------|
+| data              | The input dataset to preprocess.                          | None    |
+| missing_values    | Strings that indicate missing values (eg NA, none, Null)     | None    |
+| continuous_cutoff | The max number of levels in a factor before a column is converted to a continuous variable | 10  |
+
+#### Output
+
+The processed dataframe as well as a dataframe ($processed_data) summarizing the included variables ($summary_statistics).
+
 ```r
 # Load the package
 library(clinclust)
 
 # Preprocess the data
-preprocessed_data <- preprocess_data(input_file = "path/to/data.csv")
+iris_preprocessed <- preprocess_data(iris)
 ```
 
 ### Step 2: Impute Missing Data
 After preprocessing, handle missing values using the `impute` function. Multiple methods for imputation are supported.
 
+#### Parameters
+
+| Parameter         | Description                                               | Default |
+|-------------------|-----------------------------------------------------------|---------|
+| data              | The input dataset on which to impute missing values.  | None    |
+| methods    |  A vector of methods to employ. | c('mean','median','knn','mice') |   |
+| ks |An integer vector specifying values of k for KNN imputation. | c(5)  |
+
+#### Output
+
+Returns a list of imputed dataframes where the names correspond to the methods and the parameters used.
+
 ```r
 # Impute missing values
-imputed_data <- impute(preprocessed_data)
+imputed_data <- impute(iris_preprocessed$preprocessed_data,methods = c('mice','knn'),ks = c(6,7,8,9,10))
 ```
 
 ### Step 3: Clustering
 Once the data has been imputed, you can proceed with either supervised or unsupervised clustering.
+
+#### Parameters
+
 
 #### Supervised Clustering
 Use the `supervised` function to perform supervised clustering based on predefined labels.
@@ -73,6 +109,13 @@ Use the `cluster_modified` function for unsupervised clustering to identify natu
 # Perform unsupervised clustering
 results_unsupervised <- cluster_modified(imputed_data)
 ```
+
+
+
+
+
+
+
 
 ## Example Workflow
 Below is a complete example from preprocessing the data to clustering:
