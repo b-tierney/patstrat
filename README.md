@@ -47,9 +47,6 @@ Use the `preprocess_data` function to normalize and prepare the dataset for anal
 
 #### Parameters
 
-
-# `preprocess_data` Function Parameters
-
 | Parameter         | Description                                               | Default |
 |-------------------|-----------------------------------------------------------|---------|
 | data              | The input dataset to preprocess.                          | None    |
@@ -85,13 +82,11 @@ Returns a list of imputed dataframes where the names correspond to the methods a
 
 ```r
 # Impute missing values
-imputed_data <- impute(iris_preprocessed$preprocessed_data,methods = c('mice','knn'),ks = c(6,7,8,9,10))
+imputed_data <- impute(iris_preprocessed$processed_data,methods = c('mice','knn'),ks = c(6,7,8,9,10))
 ```
 
 ### Step 3: Clustering
 Once the data has been imputed, you can proceed with either supervised or unsupervised clustering.
-
-#### Parameters
 
 
 #### Supervised Clustering
