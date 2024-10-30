@@ -67,9 +67,21 @@ preprocess_data <- function(data, continuous_cutoff = 10, missing_values = NULL)
              across(where(is.character), ~ ifelse(.x %in% missing_values, NA, .x)))  # Replace in character columns
   }
 
+  
+  categorical_vars <- sapply(data, is.factor)
+  multi_level_cats <- names(which(sapply(data[categorical_vars], nlevels) > 2))
+
+  # Apply one-hot encoding to multi-level categorical variables
+  if (length(multi_level_cats) > 0) {
+    data <- data %>%
+    mutate(across(all_of(multi_level_cats), ~ as.factor(.))) %>%  # Ensure factors for encoding
+    tidyr::pivot_wider(names_from = multi_level_cats, values_from = multi_level_cats, values_fn = list)
+  }
+
   # Ensure categorical variables are converted to characters to retain their labels
   data <- data %>%
     mutate(across(where(is.factor), as.character))
+    
   
   # Step 2: Determine the variable type for each column based on user-defined cutoff for continuous
   variable_types <- sapply(data, determine_variable_type, cutoff = continuous_cutoff)
