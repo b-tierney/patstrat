@@ -9,6 +9,7 @@ supervised_rulefit(
   varselect = list(all = "all"),
   dependent_variable,
   family = "gaussian",
+  ad.penalty = "lambda.min",
   max_depth = 3
 )
 }
