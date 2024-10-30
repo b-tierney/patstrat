@@ -64,7 +64,7 @@ impute_data <- function(data, methods = c("mean", "median", "knn", "mice"), ks =
       imputed_data <- imputed_data %>%
         mutate(across(everything(), ~ track_imputation(data[[cur_column()]], .x), .names = "{.col}_imp"))
       
-      imputation_results[[method]] <- imputed_data  # Return the modified dataframe with _imp columns
+      imputation_results[[paste0(method,'-imputation')]] <- imputed_data  # Return the modified dataframe with _imp columns
     }
   }
   
