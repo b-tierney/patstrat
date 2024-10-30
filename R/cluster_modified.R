@@ -348,9 +348,9 @@ standardize_cluster_output <- function(results_list) {
   
   for (name in names(results_list)) {
     result_entry <- results_list[[name]]
-    parts <- strsplit(name, "_")[[1]]  # Split the name to extract components
-    datasetname <- parts[1]  # First part is the imputation method
-    method <- parts[2]  # Second part is the clustering method
+    parts <- strsplit(name, "_")[[1]] 
+    datasetname <- parts[1] 
+    method <- parts[2] 
     varset <- result_entry[['varset']]
     result_entry[['varset']] <- NULL
 
@@ -372,7 +372,7 @@ standardize_cluster_output <- function(results_list) {
           long_format_list <- rbind(long_format_list, data.frame(
             parameter_set = param_set,
             variable_set = varset,
-            datasetname = imputation,
+            datasetname = datasetname,
             method = method,
             parameter = param_name,
             value = param_value
