@@ -51,7 +51,7 @@ filter_columns <- function(data) {
 #' @return A list of data frames containing RuleFit model coefficients for each dataset and variable set.
 #' @export
 supervised_rulefit <- function(input_data_list, varselect = list(all = 'all'), dependent_variable, 
-                           family = "gaussian", max_depth = 3) {
+                           family = "gaussian", ad.penalty = "lambda.min", max_depth = 3) {
   
   # Initialize an empty list to store results
   results_list <- list()
@@ -85,7 +85,7 @@ supervised_rulefit <- function(input_data_list, varselect = list(all = 'all'), d
 
       # Fit the RuleFit model using the provided parameters
       formula <- as.formula(paste(dependent_variable, "~ ."))
-      rule_model <- pre(formula, data = dat_filt, family = family, maxdepth = max_depth)
+      rule_model <- pre(formula, data = dat_filt, family = family,ad.penalty = ad.penalty,  maxdepth = max_depth)
       
       # Extract the coefficients and add metadata
       rule_coefficients <- coef(rule_model) %>%
