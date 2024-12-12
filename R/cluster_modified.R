@@ -87,8 +87,7 @@ dbscan_clustering <- function(data, eps, minPts) {
 
 
 # VAE Clustering
-vae_clustering <- function(data, latent_dim = 2, hidden_dim = 128, 
-                           epochs = 10, batch_size = 32, n_clusters = 5, seed = 42) {
+vae_clustering <- function(data, latent_dim = 2, hidden_dim = 128, epochs = 10, batch_size = 32, n_clusters = 5, seed = 42) {
   
   # Check if CUDA is available
   device <- if (cuda_is_available()) torch_device("cuda") else torch_device("cpu")
@@ -223,11 +222,10 @@ filter_the_columns <- function(data) {
 #' @param params A list of parameters specific to each clustering method. Includes settings for each method.
 #' @return A list containing clustering results for each method and variable set.
 #' @export
-unsupervised_clustering <- function(input_data_list, varselect = list(all = 'all'),methods = c('kmeans','hierarchical','dbscan','vae'),params = list(vae = list(latent_dim = 2, hidden_dim = 128, 
-                           epochs = 10, batch_size = 32, n_clusters = 5, seed = 42),dbscan = list(eps = c("0.5", "0.75"), minPts = c("2", "3")), hierarchical = list(cut_quantile = c(".5"), cutpoint = c("3"), kcut = c("5")), kmeans = list(n_clusters = c("2", "3")))) {
+unsupervised_clustering <- function(input_data_list, varselect = list(all = 'all'),methods = c('kmeans','hierarchical','dbscan','vae'),params = list(vae = list(latent_dim = c(2), hidden_dim = c(128), 
+                           epochs = c(10), batch_size = c(32), n_clusters = c(5), seed = c(42)),dbscan = list(eps = c("0.5", "0.75"), minPts = c("2", "3")), hierarchical = list(cut_quantile = c(".5"), cutpoint = c("3"), kcut = c("5")), kmeans = list(n_clusters = c("2", "3")))) {
 
   results_list <- list()
-
 
   for(varset in names(varselect)){
 
@@ -246,8 +244,6 @@ unsupervised_clustering <- function(input_data_list, varselect = list(all = 'all
 
       # Filter out columns that end in '_imp' and keep numeric ones
       filtered_data <- filter_the_columns(subsetted_data)
-
-      print(filtered_data)
 
       # Run clustering methods based on config
       for (method in methods) {
@@ -292,7 +288,7 @@ unsupervised_clustering <- function(input_data_list, varselect = list(all = 'all
           }
           
           # Save hclust result
-          results_list[[paste0(name, '_hclust', '_',varset)]] <- list(method = 'hierarchical', result = hclust_result,varset = varset)
+          #results_list[[paste0(name, '_hclust', '_',varset)]] <- list(method = 'hierarchical', result = hclust_result,varset = varset)
         } else if (method == 'dbscan') {
           
           dbscan_eps <- params[[method]][['eps']]
@@ -307,10 +303,24 @@ unsupervised_clustering <- function(input_data_list, varselect = list(all = 'all
             }
           }
         } else if (method == "vae"){
-          
-          vae_result <- vae_clustering(normalized_data)
-          results_list[[paste0(name, '_vae', '_',varset)]] <- list(method = 'vae', result = vae_result,varset = varset)
-        }
+          latent_dims <- params[[method]][['latent_dim']]
+          batch_sizes <- params[[method]][['batch_size']]
+          hidden_dims <- params[[method]][['hidden_dim']]
+          allepochs <- params[[method]][['epochs']]
+          seeds <- params[[method]][['seed']]
+            for(latent_dim in latent_dims){
+              for(hidden_dim in hidden_dims){
+                for(epoch in allepochs){
+                  for(batch_size in batch_sizes){
+                    for(seed in seeds){
+                    vae_result <- vae_clustering(normalized_data,epochs = epoch,batch_size = batch_size,seed = seed, hidden_dim = hidden_dim, latent_dim = latent_dim)
+                    results_list[[paste0(name, '_vae', '_',varset)]] <- list(method = 'vae',epochs = epoch,batch_size = batch_size,seed = seed, hidden_dim = hidden_dim, latent_dim = latent_dim, result = vae_result,varset = varset)
+                    }
+                  }
+                }
+              }
+            }
+          }
       }
     }
   }
