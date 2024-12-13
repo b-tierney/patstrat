@@ -46,39 +46,52 @@ shinify <- function(raw_data, pca_output, params) {
   pca_result <- pca_output$pca_result
   cluster_data <- pca_output$clusters
   silhouette_results <- pca_output$silhouettes
-  
   # Start Shiny app
   shinyApp(
     ui = fluidPage(
       tags$head(
-        tags$style(HTML(
-          "body { background-color: #121212; color: white; }"
-        ))
+        tags$style(HTML("
+    body { background-color: #121212; color:gray}
+    table.dataTable { background-color: #2b2b2b; color: white; }
+    table.dataTable td, table.dataTable th { color: white !important; }
+    .dataTables_wrapper .dataTables_paginate .paginate_button { color: white !important; }
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover { background-color: #555555 !important; }
+    .form-control, .selectize-input, .btn { color: black !important; background-color: #f5f5f5 !important; }
+    .title-panel { color: white !important; }
+"))
+        
       ),
       titlePanel("PCA and Clustering Exploration"),
       sidebarLayout(
         sidebarPanel(
-          # Dropdown for Dataset
-          selectInput("datasetname", "Choose datasetname", 
-                      choices = unique(params$datasetname)),
-          
-          # Dropdown for Method
-          selectInput("method", "Choose Method", 
-                      choices = colnames(cluster_data)), # Dynamically updated to clustering methods
-          
-          # Dynamic parameter inputs
-          uiOutput("parameter_ui"),
-          
-          # Display parameters for selected method
-          DTOutput("selected_params"),
-          
-          # Download button
-          downloadButton("download_plots", "Download All Plots"),
-          
+          conditionalPanel(
+            condition = "input.tabs !== 'Parameter Descriptions'",
+            # Dropdown for Dataset
+            selectInput("datasetname", "Choose datasetname", 
+                        choices = unique(params$datasetname)),
+            
+            # Dropdown for Method
+            selectInput("method", "Choose Method", 
+                        choices = colnames(cluster_data)), # Dynamically updated to clustering methods
+            
+            # Dynamic parameter inputs
+            uiOutput("parameter_ui"),
+            
+            # Download button
+            downloadButton("download_plots", "Download All Plots"),
+          ),
+          conditionalPanel(
+            condition = "input.tabs === 'Parameter Descriptions'",
+            h4("Lorem ipsum dolor sit amet, consectetur adipiscing elit.")
+          ),
           width = 3
         ),
         mainPanel(
           tabsetPanel(
+            id = "tabs", # Add ID for conditionalPanel to work
+            tabPanel("Parameter Descriptions", 
+                     DTOutput("selected_params")
+            ),            
             tabPanel("PCA Analysis", 
                      plotOutput("pca_plot"),
                      plotOutput("variance_explained_plot"),
@@ -92,7 +105,7 @@ shinify <- function(raw_data, pca_output, params) {
                      plotOutput("silhouette_plot"),
                      plotOutput("silhouette_comparison_plot")
             ),
-            tabPanel("Gap Statistic", plotOutput("gap_stat_plot"))
+            tabPanel("Gap Statistic", plotOutput("gap_stat_plot")),
           )
         )
       )
@@ -110,7 +123,7 @@ shinify <- function(raw_data, pca_output, params) {
       # Display parameters for selected method
       output$selected_params <- renderDT({
         req(input$method)
-        params %>% filter(parameterset == input$method)
+        params %>% select(parameter_set,method,parameter,value)
       })
       
       ### Step 2: PCA plot
@@ -130,6 +143,7 @@ shinify <- function(raw_data, pca_output, params) {
                 legend.text = element_text(color = "white"),
                 legend.title = element_text(color = "white"),
                 axis.text = element_text(color = "white"),
+                axis.text.x = element_text(color = 'white',angle=60,hjust =1),
                 axis.title = element_text(color = "white"),
                 plot.title = element_text(color = "white", face = "bold"))
       })
@@ -188,6 +202,7 @@ shinify <- function(raw_data, pca_output, params) {
                 legend.text = element_text(color = "white"),
                 legend.title = element_text(color = "white"),
                 axis.text = element_text(color = "white"),
+                axis.text.x = element_blank(),
                 axis.title = element_text(color = "white"),
                 plot.title = element_text(color = "white", face = "bold"))
       })
@@ -195,7 +210,7 @@ shinify <- function(raw_data, pca_output, params) {
       ### Step 6: Gap Statistic plot
       output$gap_stat_plot <- renderPlot({
         req(input$method)
-        gap_stat <- cluster::clusGap(as.matrix(raw_data %>% select(where(is.numeric))), FUN = kmeans, K.max = 10)
+        gap_stat <- cluster::clusGap(as.matrix(raw_data %>% select(where(is.numeric))), FUN = kmeans, K.max = 25)
         fviz_gap_stat(gap_stat) +
           theme_minimal(base_family = "Arial", base_size = 12) +
           theme(panel.background = element_rect(fill = "black"),
@@ -241,6 +256,7 @@ shinify <- function(raw_data, pca_output, params) {
                 legend.text = element_text(color = "white"),
                 legend.title = element_text(color = "white"),
                 axis.text = element_text(color = "white"),
+                axis.text.x = element_text(color = 'white',angle=60,hjust =1),
                 axis.title = element_text(color = "white"),
                 plot.title = element_text(color = "white", face = "bold"))
       })
