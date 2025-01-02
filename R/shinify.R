@@ -1,15 +1,3 @@
-library(shiny)
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-library(FactoMineR)
-library(factoextra)
-library(cluster) # For silhouette computation
-library(RColorBrewer)
-library(DT)
-library(zip)
-
-# Function to perform PCA and compute silhouette distances for all clustering methods
 prepare_pca_and_clusters <- function(raw_data, clusters) {
   # Scale and perform PCA on numeric columns of raw data
   numeric_data <- raw_data %>%
@@ -31,7 +19,17 @@ prepare_pca_and_clusters <- function(raw_data, clusters) {
   )
 }
 
-# Function to run PCA and compute related outputs
+#' Run PCA and Clustering Analysis
+#'
+#' Perform PCA and compute related outputs, including clustering and silhouette distances.
+#'
+#' @param raw_data A data frame containing the raw data.
+#' @param clusters A data frame or matrix with clustering results for different methods.
+#'
+#' @import dplyr
+#' @import FactoMineR
+#' @importFrom cluster silhouette
+#' @export
 run_pca <- function(raw_data, clusters) {
   # Perform PCA and clustering analysis
   pca_and_cluster_data <- prepare_pca_and_clusters(raw_data, clusters)
@@ -39,7 +37,24 @@ run_pca <- function(raw_data, clusters) {
   return(pca_and_cluster_data)
 }
 
-# Define the shinify function
+#' Launch a Shiny app to explore PCA and clustering results interactively.
+#'
+#' @param raw_data A data frame containing the raw data.
+#' @param pca_output A list containing the PCA result, clustering information, and silhouette results.
+#' @param params A data frame of parameters for methods and datasets.
+#'
+#' @import shiny
+#' @import ggplot2
+#' @import dplyr
+#' @import tidyr
+#' @import FactoMineR
+#' @import factoextra
+#' @import cluster
+#' @import RColorBrewer
+#' @import DT
+#' @importFrom stats dist
+#' @importFrom zip zip
+#' @export
 shinify <- function(raw_data, pca_output, params) {
   
   # Extract PCA result, clusters, and silhouette results
@@ -321,18 +336,3 @@ shinify <- function(raw_data, pca_output, params) {
     }
   )
 }
-
-# Example of calling shinify function
-library(clinclust)
-out = clinclust::unsupervised_clustering(list(iristest = iris))
-out = clinclust::standardize_cluster_output(out)
-
-### PUT A FUNCTION HERE THAT RUNS PCA
-pca_output <- run_pca(iris, out[[1]])
-
-raw_data = iris
-clusters = out[[1]]
-params = out[[2]]
-
-### FEED PCA OUTPUT TO THIS FUNCTION
-shinify(raw_data, pca_output, params)
