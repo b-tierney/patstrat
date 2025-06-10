@@ -1,24 +1,24 @@
-# clinclust
+# patstrat
 
 **R Package for Identifying Subpopulations of Individuals in Omic and Clinical Data**
 
 ## Overview
 
-`clinclust` is an R package designed to identify patient subpopulations in 'omic and clinical datasets. It provides a series of simple functions to preprocess data, impute missing values, and cluster individuals using either supervised or unsupervised approaches.
+`patstrat` is an R package designed to identify patient subpopulations in 'omic and clinical datasets. It provides a series of simple functions to preprocess data, impute missing values, and cluster individuals using either supervised or unsupervised approaches.
 
 The purpose is to compare numerous imputation and clustering methods simlultaneously so you can evalution the robustness of clusters to analytic choice. This is akin to our prior work with Vibration of Effects, where we compared how model specification changes observed association outcomes.
 
-Clinclust has two modes: supervised and unsupervised. Both can be run on either all variables in a dataset or specific subsets (e.g., just age, sex, bmi in one group, then just age and sex in another) so the impact of including different variables on patient stratification can be observed. 
+patstrat has two modes: supervised and unsupervised. Both can be run on either all variables in a dataset or specific subsets (e.g., just age, sex, bmi in one group, then just age and sex in another) so the impact of including different variables on patient stratification can be observed. 
 
 ### Supervised mode
 
-In supervised mode, the goal is to identify subpopulations directly as a function of given depedent variable (e.g., response to treatment). Clinclust uses RuleFit regression (wrapping the Pre package) to build regression-based decision trees for separating patients into groups based on their characteristics. The goal in running Clinclust in supervised mode is to define patient groups that are meaningful in the context of treatment or disease (e.g., with BMI > X and the abundance of metabolite Y > X, patients are likely to respond to a given drug).
+In supervised mode, the goal is to identify subpopulations directly as a function of given depedent variable (e.g., response to treatment). patstrat uses RuleFit regression (wrapping the Pre package) to build regression-based decision trees for separating patients into groups based on their characteristics. The goal in running patstrat in supervised mode is to define patient groups that are meaningful in the context of treatment or disease (e.g., with BMI > X and the abundance of metabolite Y > X, patients are likely to respond to a given drug).
 
 ### Unsupervised mode
 
-In unsupervised mode, Clinclust can use multiple imputation (mean, median, MICE, a variational autoencoder) and clustering (kmeans, DBSCAN, hierarchical, variational autoencoder coupled with a gaussian mixture model) methods to sort patients into groups, without being guided by a potential response variable. The total set of imputation methods and clustering approaches are then returned and can be compared on, say, a PCA plot or other visualization.
+In unsupervised mode, patstrat can use multiple imputation (mean, median, MICE, a variational autoencoder) and clustering (kmeans, DBSCAN, hierarchical, variational autoencoder coupled with a gaussian mixture model) methods to sort patients into groups, without being guided by a potential response variable. The total set of imputation methods and clustering approaches are then returned and can be compared on, say, a PCA plot or other visualization.
 
-In future versions of Clinclust, we will implement a shinify function that generates a shiny app for a given output data structure. 
+In future versions of patstrat, we will implement a shinify function that generates a shiny app for a given output data structure. 
 
 
 ## Installation
@@ -34,10 +34,10 @@ To install this package locally from your machine, you can use the following ste
    install.packages("devtools")
    
    # Install the package
-   devtools::install_local("/path/to/clinclust")
+   devtools::install_local("/path/to/patstrat")
    ```
 
-Replace `/path/to/clinclust` with the actual path to the package directory on your system.
+Replace `/path/to/patstrat` with the actual path to the package directory on your system.
 
 ## Usage
 The workflow involves three main steps: preprocessing, imputation, and either supervised or unsupervised clustering.
@@ -59,7 +59,7 @@ The processed dataframe as well as a dataframe ($processed_data) summarizing the
 
 ```r
 # Load the package
-library(clinclust)
+library(patstrat)
 
 # Preprocess the data
 iris_preprocessed <- preprocess_data(iris)
